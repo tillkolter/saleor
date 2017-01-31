@@ -51,7 +51,9 @@
         <form method="post" id="form-product" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             {{ form.name|materializecss:"s12" }}
-            {{ form.vat_rate_type|materializecss:"s12" }}
+            {% if form.vat_rate_type %}
+                {{ form.vat_rate_type|materializecss:"s12" }}
+            {% endif %}
             {{ form.is_shipping_required|materializecss:"input-field s2" }}
             {{ form.product_attributes|materializecss:"input-field s10" }}
             {{ form.has_variants|materializecss:"input-field s2" }}
