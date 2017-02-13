@@ -43,7 +43,7 @@ var config = {
   },
   output: {
     path: resolve('saleor/static/assets/'),
-    filename: '[name].[chunkhash].js',
+    filename: '[name].[chunkhash].js'
   },
   module: {
     loaders: [
