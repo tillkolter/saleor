@@ -3,7 +3,7 @@ import warnings
 
 from django import template
 from django.conf import settings
-from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.templatetags.static import static
 
 logger = logging.getLogger(__name__)
 register = template.Library()
@@ -41,7 +41,7 @@ def get_thumbnail(instance, size, method='crop'):
                              extra={'instance': instance, 'size': size})
         else:
             return thumbnail.url
-    return static('images/product-image-placeholder.png')
+    return static('product/product-image-placeholder.png')
 
 
 @register.simple_tag()
