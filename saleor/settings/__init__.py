@@ -568,13 +568,13 @@ PASSWORD_CONFIRMATION_TIMEOUT_DAYS = 1
 
 #
 PAYPAL_LOG_URL = os.environ.get('PAYPAL_LOG_URL', None)
-PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL', None)
+# PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL', None)
 PAYPAL_API_CLIENT_ID = os.environ.get('PAYPAL_API_CLIENT', None)
 PAYPAL_API_SECRET = os.environ.get('PAYPAL_API_SECRET', None)
-PAYPAL_API_USER = os.environ.get('PAYPAL_API_USER', None)
-PAYPAL_API_PWD = os.environ.get('PAYPAL_API_PWD', None)
-PAYPAL_API_SIG = os.environ.get('PAYPAL_API_SIG', None)
-PAYPAL_API_VERSION = os.environ.get('PAYPAL_API_VERSION', None)
+# PAYPAL_API_USER = os.environ.get('PAYPAL_API_USER', None)
+# PAYPAL_API_PWD = os.environ.get('PAYPAL_API_PWD', None)
+# PAYPAL_API_SIG = os.environ.get('PAYPAL_API_SIG', None)
+# PAYPAL_API_VERSION = os.environ.get('PAYPAL_API_VERSION', None)
 
 
 PDF_STORAGE_ROOT = os.environ.get('PDF_STORAGE_ROOT', '/tmp/')
