@@ -22,7 +22,7 @@ RUN useradd -m user
 RUN mkdir -p /home/user/.ssh && ln -s /run/secrets/user_ssh_key /home/user/.ssh/id_rsa
 RUN chown -R user:user /home/user/.ssh
 
-RUN --mount=type=ssh,id=github_ssh_key pip install \
+RUN --mount=type=ssh,id=default pip install \
   --no-cache \
   --requirement requirements.txt
 

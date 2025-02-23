@@ -175,6 +175,8 @@ INSTALLED_APPS = [
     'saleor.elasticsearch',
     'saleor.search',
 
+    'constance',
+
     # External apps
     'versatileimagefield',
     'django_prices',
@@ -202,13 +204,15 @@ INSTALLED_APPS = [
 
     'corsheaders',
     # We authenticate via authtoken
-    'constance',
     'django_celery_beat',
 
     'robots',
     'raven.contrib.django.raven_compat',
 
 ]
+
+
+
 
 LOGGING = {
     'version': 1,
@@ -281,7 +285,8 @@ LOGGING = {
         },
     },
 }
-#
+
+CONSTANCE_IGNORE_ADMIN_VERSION_CHECK=True
 CONSTANCE_CONFIG_FIELDSETS = {
     'Public announcement': (
         'ANNOUNCEMENT_SHOW',
