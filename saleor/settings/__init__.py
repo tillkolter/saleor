@@ -46,13 +46,11 @@ if redis_host:
             )
         }
     }
-    CONSTANCE_REDIS_CONNECTION = {
-        'host': redis_host,
-        'port': redis_port,
-        'db': 0,
-    }
+
+    CONSTANCE_CACHE_BACKEND = 'default'
 else:
     CACHES = {'default': django_cache_url.config()}
+    CONSTANCE_CACHE_BACKEND = None
 
 
 DATABASES = {
@@ -205,7 +203,6 @@ INSTALLED_APPS = [
     'corsheaders',
     # We authenticate via authtoken
     'constance',
-    'constance.backends.database',
     'django_celery_beat',
 
     'robots',
@@ -347,6 +344,7 @@ CONSTANCE_CONFIG = {
     'SEARCH_UPDATE_THRESHOLD_HOURS': (24, 'Passed hours before trying update on elastic search index item.'),
 }
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+# CONSTANCE_DATABASE_CACHE_AUTOFILL_TIMEOUT = None
 
 AUTH_USER_MODEL = 'saleor_oye.Kunden'
 
