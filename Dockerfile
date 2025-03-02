@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.2
 
-FROM python:3.10-buster
+FROM python:3.10-bullseye
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get -y update --allow-insecure-repositories && \

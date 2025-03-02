@@ -10,14 +10,13 @@ dump-db:
 copy-db:
 	scp till@oye-records.com:/home/till/oye-dump.sql oye-dump.sql
 	sed -i '' 's/c1wawisys/oye_test/g' oye-dump.sql
-	sed -i '' 's/c1wawisys/oye_test/g' oye-dump.sql
 
 copy-chart-images:
-	mkdir -p /Users/tkolter/dev-data/oye_media/charts
-	scp -r till@oye-records.com:/var/www/oye_media/media/charts/. /Users/tkolter/dev-data/oye_media/charts
+	mkdir -p /Users/tkolter/dev-data/oye_media/media/charts
+	scp -r till@oye-records.com:/var/www/oye_media/media/charts/. /Users/tkolter/dev-data/oye_media/media/charts
 copy-artist-images:
-	mkdir -p /Users/tkolter/dev-data/oye_media/artists
-	scp -r till@oye-records.com:/var/www/oye_media/media/artists/. /Users/tkolter/dev-data/oye_media/artists
+	mkdir -p /Users/tkolter/dev-data/oye_media/media/artists
+	scp -r till@oye-records.com:/var/www/oye_media/media/artists/. /Users/tkolter/dev-data/oye_media/media/artists
 
 copy-default-images:
 	mkdir -p /Users/tkolter/dev-data/oye_media/default

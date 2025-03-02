@@ -29,3 +29,7 @@ webpack-bundle.json
 .env
 .vscode
 src/
+
+*.sql
+.python-version
+.venv/
