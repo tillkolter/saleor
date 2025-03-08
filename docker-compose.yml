@@ -71,7 +71,7 @@ services:
       - search
       - rabbitmq
     ports:
-      - "9000:8000"
+      - "8000:8000"
     volumes:
       - ${DOCKER_HOST_OYE_MEDIA_ROOT}:${MEDIA_ROOT}
       - ${DOCKER_HOST_OYE_STATIC_ROOT}:${STATIC_ROOT}
