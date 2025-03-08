@@ -78,8 +78,8 @@ services:
       - ${DOCKER_HOST_OYE_INVOICES_ROOT}:${PDF_STORAGE_ROOT}
       - ${DOCKER_HOST_ORIGINAL_IMAGES_ROOT}:/var/www/images/
       - ./logs/:/srv/logs/
-      - ./saleor:/app/saleor
-      - .venv/src:/app/src
+      # - ./saleor:/app/saleor
+      # - .venv/src:/app/src
 
   celeryworker:
     image: oyelogic:latest
