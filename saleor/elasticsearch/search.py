@@ -8,7 +8,6 @@ from elasticsearch import NotFoundError
 from elasticsearch_dsl import Document, Text, Integer, \
     Nested, Date, char_filter, InnerDoc
 from elasticsearch_dsl import Keyword
-from elasticsearch_dsl import MetaField
 from elasticsearch_dsl import Search
 from elasticsearch_dsl import analyzer
 from elasticsearch_dsl import token_filter
@@ -21,9 +20,12 @@ redis = cache.caches['default']
 logger = logging.getLogger(__name__)
 
 
-OYE_RELEASES_INDEX = 'oye-{}releases'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
-OYE_ARTISTS_INDEX = 'oye-{}artists'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
-OYE_LABELS_INDEX = 'oye-{}labels'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_RELEASES_INDEX = 'oye-{}releases'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_ARTISTS_INDEX = 'oye-{}artists'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_LABELS_INDEX = 'oye-{}labels'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
 
 
 MAIN_SEARCH_FIELDS = {
@@ -46,7 +48,8 @@ ngram_analyzer = analyzer(
     tokenizer='uax_url_email',
     filter=[
         'lowercase',
-        token_filter('autocomplete_filter', type="edgeNGram", min_gram=1, max_gram=20)
+        token_filter('autocomplete_filter', type="edgeNGram",
+                     min_gram=1, max_gram=20)
     ]
 )
 
@@ -69,17 +72,20 @@ lowercase_analyzer = analyzer(
     ]
 )
 
+
 class Track(InnerDoc):
     track_pk = Integer(index=False)
     title = Text()
     url = Text(index=False)
+
 
 class Release(Document):
     artist_name = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
         fields={'raw': Keyword()})
-    title = Text(search_analyzer=lowercase_analyzer, analyzer=lowercase_analyzer)
+    title = Text(search_analyzer=lowercase_analyzer,
+                 analyzer=lowercase_analyzer)
     released_at = Date()
     description = Text(
         search_analyzer=lowercase_analyzer,
@@ -184,8 +190,8 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
                         "operator": "and",
                         "prefix_length": config.SEARCH_PREFIX_LENGTH,
                         "max_expansions": 10,
-                     }
-                 }
+                    }
+                }
             }
             for field in fields
         ]
@@ -208,7 +214,11 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
         }
     }
 
-    s = Search(**search_params).from_dict(query_dict).index(search_params['index']).doc_type(doc_type)
+    s = Search(**search_params).from_dict(query_dict).index(
+        search_params['index']).doc_type(doc_type)
+
+    print("Generated Query:", s.to_dict())
+
     response = s.execute()
     return response
 
