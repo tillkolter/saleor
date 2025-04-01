@@ -81,26 +81,38 @@ class Track(InnerDoc):
 
 
 class Release(Document):
+    # New field to replace _all functionality
+    all_content = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer
+    )
+
     artist_name = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()})
-    title = Text(search_analyzer=lowercase_analyzer,
-                 analyzer=lowercase_analyzer)
+        fields={'raw': Keyword()},
+        copy_to=['all_content'])
+    title = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer,
+        copy_to=['all_content'])
     released_at = Date()
     description = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
+        copy_to=['all_content']
     )
     label = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()}
+        fields={'raw': Keyword()},
+        copy_to=['all_content']
     )
     cat_no = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()}
+        fields={'raw': Keyword()},
+        copy_to=['all_content']
     )
 
     tracks = Nested(Track)
@@ -117,9 +129,16 @@ class Release(Document):
 
 
 class Artist(Document):
-    name = Text(
+    # New field to replace _all functionality
+    all_content = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer
+    )
+
+    name = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer,
+        copy_to=['all_content']
     )
 
     class Index:
@@ -127,9 +146,16 @@ class Artist(Document):
 
 
 class Label(Document):
+    # New field to replace _all functionality
+    all_content = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer
+    )
+
     name = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
+        copy_to=['all_content']
     )
 
     class Index:
@@ -141,7 +167,7 @@ QUERY_FIELDS = [
     'artist_name',
     # 'description',
     'label',
-    '_all',
+    'all_content',  # Replaced _all with all_content
 ]
 
 
@@ -157,10 +183,31 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
         search_params['index'] = OYE_LABELS_INDEX
         fields = ['name']
 
+    # Add a multi_match query for better cross-field matching
+    should_queries.append({
+        "multi_match": {
+            "query": query,
+            "fields": fields,
+            "type": "best_fields",
+            "operator": "and",
+            "boost": 10
+        }
+    })
+
+    # Add a specific boost for all_content field
+    should_queries.append({
+        "match": {
+            "all_content": {
+                "query": query,
+                "operator": "and",
+                "boost": 8
+            }
+        }
+    })
+
     match_prefix = config.SEARCH_PHRASE_PREFIX
     match_phrase = "match_phrase_prefix" if match_prefix else "match_phrase"
     for field in fields:
-
         should_queries.append({
             match_phrase: {
                 field: {
@@ -194,7 +241,8 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
                     }
                 }
             }
-            for field in fields
+            # Skip all_content as we already added it with specific settings
+            for field in fields if field != "all_content"
         ]
     )
 
