@@ -215,19 +215,19 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
         }
     }
 
-    print("this is query %s", json.dumps(query_dict)
+    print("this is query %s", json.dumps(query_dict))
 
-    s=Search(**search_params).from_dict(query_dict).index(
+    s = Search(**search_params).from_dict(query_dict).index(
         search_params['index']).doc_type(doc_type)
 
-    print("Generated Query: %s", s.to_dict())
+    print("Generated Query (%s): %s ", doc_type, s.to_dict())
 
-    response=s.execute()
+    response = s.execute()
     return response
 
 
 def get_elastic_release_dict(release):
-    result={
+    result = {
         'artist_name': release.name,
         'title': release.title,
         'description': release.description,
@@ -235,7 +235,7 @@ def get_elastic_release_dict(release):
         'cat_no': release.catno,
     }
     if release.released_at:
-        result['released_at']=release.released_at
+        result['released_at'] = release.released_at
 
     return result
 
@@ -245,7 +245,7 @@ def _elastic_dict_cache_key(doc_type, item):
 
 
 def _get_cacheable_elastic_dict(doc_type, item):
-    get_elastic_dict=getattr(doc_type, 'get_elastic_dict', None)
+    get_elastic_dict = getattr(doc_type, 'get_elastic_dict', None)
     if get_elastic_dict and callable(get_elastic_dict):
         return get_elastic_dict(item)
 
@@ -253,21 +253,21 @@ def _get_cacheable_elastic_dict(doc_type, item):
 def cached_elastic(doc_type):
     def wrapper(func):
         def cached_indexing(self):
-            run_index=False
-            cache_key=_elastic_dict_cache_key(doc_type, self)
-            elastic_dict=_get_cacheable_elastic_dict(doc_type, self)
+            run_index = False
+            cache_key = _elastic_dict_cache_key(doc_type, self)
+            elastic_dict = _get_cacheable_elastic_dict(doc_type, self)
             try:
                 doc_type.get(self.pk)
-                cached_dict=redis.get(cache_key, None)
+                cached_dict = redis.get(cache_key, None)
                 if cached_dict is None or cached_dict != elastic_dict:
-                    run_index=True
+                    run_index = True
                     logger.info('Re-index elastic document (type: {}, id: {})'.format(
                         doc_type.__name__,
                         self.pk
                     ))
 
             except NotFoundError:
-                run_index=True
+                run_index = True
             if run_index:
                 func(self)
                 redis.set(cache_key, elastic_dict)
