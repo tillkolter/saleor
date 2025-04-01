@@ -217,7 +217,7 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
     s = Search(**search_params).from_dict(query_dict).index(
         search_params['index']).doc_type(doc_type)
 
-    print("Generated Query:", s.to_dict())
+    print("Generated Query:", query_dict)
 
     response = s.execute()
     return response
