@@ -212,8 +212,6 @@ INSTALLED_APPS = [
 ]
 
 
-
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -286,7 +284,7 @@ LOGGING = {
     },
 }
 
-CONSTANCE_IGNORE_ADMIN_VERSION_CHECK=True
+CONSTANCE_IGNORE_ADMIN_VERSION_CHECK = True
 CONSTANCE_CONFIG_FIELDSETS = {
     'Public announcement': (
         'ANNOUNCEMENT_SHOW',
@@ -440,7 +438,8 @@ VERSATILEIMAGEFIELD_SETTINGS = {
 
 ELASTICSEARCH_HOST = os.environ.get('ELASTICSEARCH_HOST', 'localhost')
 ELASTICSEARCH_PORT = os.environ.get('ELASTICSEARCH_PORT', '9200')
-ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL', 'http://localhost:9200')
+ELASTICSEARCH_URL = os.environ.get(
+    'ELASTICSEARCH_URL', 'http://localhost:9200')
 
 
 # We'll support couple of elasticsearch add-ons, but finally we'll use single
@@ -616,3 +615,5 @@ if IS_TESTING:
 RUN_EMAIL_TESTS = os.environ.get('RUN_EMAIL_TESTS', False)
 
 DJANGO_CELERY_BEAT_TZ_AWARE = False
+
+CSRF_TRUSTED_ORIGINS = ['https://oye-records.com']
