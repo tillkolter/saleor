@@ -1,5 +1,7 @@
 .*
 *.sqlite
+*.sql
+logs
 media
 static
 venv
