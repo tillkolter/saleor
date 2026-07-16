@@ -1,0 +1,43 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - master
+      - gfeat/upgrades
+  push:
+    branches:
+      - master
+      - gfeat/upgrades
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-build:
+    name: Production Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        env:
+          SALEOR_OYE_DEPLOY_KEY: ${{ secrets.SALEOR_OYE_DEPLOY_KEY }}
+        run: |
+          test -n "$SALEOR_OYE_DEPLOY_KEY"
+          install -m 600 /dev/null /tmp/saleor_oye_deploy_key
+          printf '%s\n' "$SALEOR_OYE_DEPLOY_KEY" > /tmp/saleor_oye_deploy_key
+          eval "$(ssh-agent -s)"
+          ssh-add /tmp/saleor_oye_deploy_key
+          rm /tmp/saleor_oye_deploy_key
+          DOCKER_BUILDKIT=1 docker build --pull --ssh "default=$SSH_AUTH_SOCK" --tag oye-saleor:ci .
+
+      - name: Verify application imports
+        run: |
+          docker run --rm --entrypoint python oye-saleor:ci -c "import saleor; import saleor_oye"
