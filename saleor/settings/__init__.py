@@ -46,13 +46,11 @@ if redis_host:
             )
         }
     }
-    CONSTANCE_REDIS_CONNECTION = {
-        'host': redis_host,
-        'port': redis_port,
-        'db': 0,
-    }
+
+    CONSTANCE_CACHE_BACKEND = 'default'
 else:
     CACHES = {'default': django_cache_url.config()}
+    CONSTANCE_CACHE_BACKEND = None
 
 
 DATABASES = {
@@ -94,11 +92,14 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 ORDER_FROM_EMAIL = os.getenv('ORDER_FROM_EMAIL', DEFAULT_FROM_EMAIL)
 
 MEDIA_ROOT = os.environ.get('MEDIA_ROOT', os.path.join(PROJECT_ROOT, 'media'))
-MEDIA_URL = '/media/'
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
 
-STATIC_ROOT = os.environ.get(
-    'STATIC_ROOT', os.path.join(PROJECT_ROOT, 'static'))
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+
+os.environ.get('STATIC_ROOT', os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/static/'
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -133,7 +134,8 @@ TEMPLATES = [{
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -141,10 +143,9 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    'babeldjango.middleware.LocaleMiddleware',
-    # 'saleor.core.middleware.CountryMiddleware',
-    'saleor.core.middleware.CurrencyMiddleware',
 ]
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 INSTALLED_APPS = [
     # External apps that need to go before django's
@@ -159,6 +160,7 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'django_filters',
     # 'django.contrib.postgres',
 
     # Local apps
@@ -166,30 +168,26 @@ INSTALLED_APPS = [
     'saleor.discount',
     'saleor.product',
     'saleor.cart',
-    # 'saleor.checkout',
     'saleor.core',
     'saleor.graphql',
-    # 'saleor.order',
-    # 'saleor.dashboard',
     'saleor.shipping',
-    # 'saleor.search',
     'saleor.site',
-    # 'saleor.data_feeds',
     'saleor.elasticsearch',
+    'saleor.search',
+
+    'constance',
 
     # External apps
     'versatileimagefield',
-    # 'babeldjango',
     'django_prices',
-    # 'django_prices_openexchangerates',
     'graphene_django',
     'mptt',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_auth',
     # 'webpack_loader',
-    'allauth',
-    'allauth.account',
+    # 'allauth',
+    # 'allauth.account',
     'django_countries',
     'ajax_select',
 
@@ -206,15 +204,13 @@ INSTALLED_APPS = [
 
     'corsheaders',
     # We authenticate via authtoken
-    # 'rest_framework.authtoken',
-    'constance',
-    'constance.backends.database',
     'django_celery_beat',
 
     'robots',
     'raven.contrib.django.raven_compat',
 
 ]
+
 
 LOGGING = {
     'version': 1,
@@ -287,7 +283,8 @@ LOGGING = {
         },
     },
 }
-#
+
+CONSTANCE_IGNORE_ADMIN_VERSION_CHECK = True
 CONSTANCE_CONFIG_FIELDSETS = {
     'Public announcement': (
         'ANNOUNCEMENT_SHOW',
@@ -316,7 +313,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
         'DISCOVER_DISCOGS_RELEASES_ENABLED',
         'RESERVATION_CANCELLED_RECIPIENT',
         'SEND_RESERVATION_CANCELLED_MAIL',
-
+        'RELEASE_INFO_UPTODATE_HOURS',
     )
 }
 CONSTANCE_ADDITIONAL_FIELDS = {
@@ -350,6 +347,7 @@ CONSTANCE_CONFIG = {
     'SEARCH_UPDATE_THRESHOLD_HOURS': (24, 'Passed hours before trying update on elastic search index item.'),
 }
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+# CONSTANCE_DATABASE_CACHE_AUTOFILL_TIMEOUT = None
 
 AUTH_USER_MODEL = 'saleor_oye.Kunden'
 
@@ -440,8 +438,9 @@ VERSATILEIMAGEFIELD_SETTINGS = {
 
 ELASTICSEARCH_HOST = os.environ.get('ELASTICSEARCH_HOST', 'localhost')
 ELASTICSEARCH_PORT = os.environ.get('ELASTICSEARCH_PORT', '9200')
-ELASTICSEARCH_URL = 'http://{}:{}'.format(
-    ELASTICSEARCH_HOST, ELASTICSEARCH_PORT)
+ELASTICSEARCH_URL = os.environ.get(
+    'ELASTICSEARCH_URL', 'http://localhost:9200')
+
 
 # We'll support couple of elasticsearch add-ons, but finally we'll use single
 # variable
@@ -476,7 +475,7 @@ GRAPHENE = {
 SITE_SETTINGS_ID = 1
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
@@ -486,19 +485,19 @@ REST_FRAMEWORK = {
 
 APPEND_SLASH = True
 
-CORS_ORIGIN_WHITELIST = [
-    'google.com',
-    '127.0.0.1',
-    '192.168.0.3',
-    '192.168.0.3:3000',
-    'localhost:8000',
-    'localhost:3000',
-    'localhost:8080',
-    '127.0.0.1:9000',
-    '127.0.0.1:8000',
-    '192.168.2.38:3000',
-    '192.168.2.38',
-    'local.oye.com:8000',
+CORS_ALLOWED_ORIGINS = [
+    'https://*.google.com',
+    'http://127.0.0.1',
+    'http://192.168.0.3',
+    'http://192.168.0.3:3000',
+    'http://localhost:8000',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://127.0.0.1:9000',
+    'http://127.0.0.1:8000',
+    'http://192.168.2.38:3000',
+    'http://192.168.2.38',
+    'http://local.oye.com:8000',
 ] + os.environ.get('CORS_ORIGIN_WHITELIST', '').split()
 
 DISCOGS_CONSUMER_KEY = os.environ.get('DISCOGS_CONSUMER_KEY', None)
@@ -517,20 +516,11 @@ AUTHENTICATION_BACKENDS = [
     'rest_framework.authentication.TokenAuthentication',
 ]
 
-# JWT_AUTH = {
-JWT_PAYLOAD_HANDLER = 'saleor_oye.auth.jwt.oye_jwt_payload_handler'
-JWT_EXPIRATION_DELTA = datetime.timedelta(seconds=60 * 60)
-
-JWT_AUTH_HEADER_PREFIX = 'JWT'
-JWT_PAYLOAD_GET_USER_ID_HANDLER = 'saleor_oye.auth.jwt.jwt_get_user_id_from_payload_handler'
-JWT_ALLOW_REFRESH = True
-
-JWT_AUTH = {
-    'JWT_PAYLOAD_HANDLER': 'saleor_oye.auth.jwt.oye_jwt_payload_handler',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=60 * 60),
-    'JWT_AUTH_HEADER_PREFIX': 'JWT',
-    'JWT_PAYLOAD_GET_USER_ID_HANDLER': 'saleor_oye.auth.jwt.jwt_get_user_id_from_payload_handler',
-    'JWT_ALLOW_REFRESH': True
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('JWT',),
+    'TOKEN_OBTAIN_SERIALIZER': 'saleor_oye.auth.api.serializers.OyeObtainPairSerializer',
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(seconds=60 * 60),
+    'USER_ID_CLAIM': 'userId',
 }
 
 
@@ -580,13 +570,13 @@ PASSWORD_CONFIRMATION_TIMEOUT_DAYS = 1
 
 #
 PAYPAL_LOG_URL = os.environ.get('PAYPAL_LOG_URL', None)
-PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL', None)
+# PAYPAL_API_URL = os.environ.get('PAYPAL_API_URL', None)
 PAYPAL_API_CLIENT_ID = os.environ.get('PAYPAL_API_CLIENT', None)
 PAYPAL_API_SECRET = os.environ.get('PAYPAL_API_SECRET', None)
-PAYPAL_API_USER = os.environ.get('PAYPAL_API_USER', None)
-PAYPAL_API_PWD = os.environ.get('PAYPAL_API_PWD', None)
-PAYPAL_API_SIG = os.environ.get('PAYPAL_API_SIG', None)
-PAYPAL_API_VERSION = os.environ.get('PAYPAL_API_VERSION', None)
+# PAYPAL_API_USER = os.environ.get('PAYPAL_API_USER', None)
+# PAYPAL_API_PWD = os.environ.get('PAYPAL_API_PWD', None)
+# PAYPAL_API_SIG = os.environ.get('PAYPAL_API_SIG', None)
+# PAYPAL_API_VERSION = os.environ.get('PAYPAL_API_VERSION', None)
 
 
 PDF_STORAGE_ROOT = os.environ.get('PDF_STORAGE_ROOT', '/tmp/')
@@ -625,3 +615,5 @@ if IS_TESTING:
 RUN_EMAIL_TESTS = os.environ.get('RUN_EMAIL_TESTS', False)
 
 DJANGO_CELERY_BEAT_TZ_AWARE = False
+
+CSRF_TRUSTED_ORIGINS = ['https://oye-records.com']

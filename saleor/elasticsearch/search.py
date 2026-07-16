@@ -1,3 +1,4 @@
+import json
 import logging
 
 from constance import config
@@ -5,10 +6,9 @@ from django.conf import settings
 from django.core import cache
 
 from elasticsearch import NotFoundError
-from elasticsearch_dsl import DocType, Text, Integer, InnerObjectWrapper, \
-    Nested, String, Date, char_filter
+from elasticsearch_dsl import Document, Text, Integer, \
+    Nested, Date, char_filter, InnerDoc
 from elasticsearch_dsl import Keyword
-from elasticsearch_dsl import MetaField
 from elasticsearch_dsl import Search
 from elasticsearch_dsl import analyzer
 from elasticsearch_dsl import token_filter
@@ -16,14 +16,17 @@ from elasticsearch_dsl.connections import connections
 
 __author__ = 'tkolter'
 
-connections.create_connection(hosts=[settings.ELASTICSEARCH_HOST])
+connections.create_connection(hosts=[settings.ELASTICSEARCH_URL])
 redis = cache.caches['default']
 logger = logging.getLogger(__name__)
 
 
-OYE_RELEASES_INDEX = 'oye-{}releases'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
-OYE_ARTISTS_INDEX = 'oye-{}artists'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
-OYE_LABELS_INDEX = 'oye-{}labels'.format("" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_RELEASES_INDEX = 'oye-{}releases'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_ARTISTS_INDEX = 'oye-{}artists'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
+OYE_LABELS_INDEX = 'oye-{}labels'.format(
+    "" if settings.ENVIRONMENT is None else settings.ENVIRONMENT + "-")
 
 
 MAIN_SEARCH_FIELDS = {
@@ -46,7 +49,8 @@ ngram_analyzer = analyzer(
     tokenizer='uax_url_email',
     filter=[
         'lowercase',
-        token_filter('autocomplete_filter', type="edgeNGram", min_gram=1, max_gram=20)
+        token_filter('autocomplete_filter', type="edgeNGram",
+                     min_gram=1, max_gram=20)
     ]
 )
 
@@ -70,66 +74,92 @@ lowercase_analyzer = analyzer(
 )
 
 
-class Track(InnerObjectWrapper):
-    pass
+class Track(InnerDoc):
+    track_pk = Integer(index=False)
+    title = Text()
+    url = Text(index=False)
 
 
-class Release(DocType):
-    artist_name = String(
+class Release(Document):
+    # New field to replace _all functionality
+    all_content = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer
+    )
+
+    artist_name = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()})
-    title = Text(search_analyzer=lowercase_analyzer, analyzer=lowercase_analyzer)
+        fields={'raw': Keyword()},
+        copy_to=['all_content'])
+    title = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer,
+        copy_to=['all_content'])
     released_at = Date()
     description = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        include_in_all=False,
+        copy_to=['all_content']
     )
-    label = String(
+    label = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()}
+        fields={'raw': Keyword()},
+        copy_to=['all_content']
     )
-    cat_no = String(
+    cat_no = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
-        fields={'raw': Keyword()}
+        fields={'raw': Keyword()},
+        copy_to=['all_content']
     )
 
-    tracks = Nested({
-        'track_pk': Integer(index='not_analyzed'),
-        'title': Text(),
-        'url': Text(index='not_analyzed')
-    })
+    tracks = Nested(Track)
 
-    class Meta:
-        all = MetaField(store=True, analyzer=lowercase_analyzer, search_analyzer=lowercase_analyzer)
-        index = OYE_RELEASES_INDEX
+    class Index:
+        name = OYE_RELEASES_INDEX
+
+    # class Meta:
+    #     all = MetaField(store=True, analyzer=lowercase_analyzer, search_analyzer=lowercase_analyzer)
 
     @staticmethod
     def get_elastic_dict(release):
         return get_elastic_release_dict(release)
 
 
-class Artist(DocType):
-    name = String(
+class Artist(Document):
+    # New field to replace _all functionality
+    all_content = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer
     )
 
-    class Meta:
-        index = OYE_ARTISTS_INDEX
-
-
-class Label(DocType):
-    name = String(
+    name = Text(
         search_analyzer=lowercase_analyzer,
         analyzer=lowercase_analyzer,
+        copy_to=['all_content']
     )
 
-    class Meta:
-        index = OYE_LABELS_INDEX
+    class Index:
+        name = OYE_ARTISTS_INDEX
+
+
+class Label(Document):
+    # New field to replace _all functionality
+    all_content = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer
+    )
+
+    name = Text(
+        search_analyzer=lowercase_analyzer,
+        analyzer=lowercase_analyzer,
+        copy_to=['all_content']
+    )
+
+    class Index:
+        name = OYE_LABELS_INDEX
 
 
 QUERY_FIELDS = [
@@ -137,7 +167,7 @@ QUERY_FIELDS = [
     'artist_name',
     # 'description',
     'label',
-    '_all',
+    'all_content',  # Replaced _all with all_content
 ]
 
 
@@ -153,10 +183,31 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
         search_params['index'] = OYE_LABELS_INDEX
         fields = ['name']
 
+    # Add a multi_match query for better cross-field matching
+    should_queries.append({
+        "multi_match": {
+            "query": query,
+            "fields": fields,
+            "type": "best_fields",
+            "operator": "and",
+            "boost": 10
+        }
+    })
+
+    # Add a specific boost for all_content field
+    should_queries.append({
+        "match": {
+            "all_content": {
+                "query": query,
+                "operator": "and",
+                "boost": 8
+            }
+        }
+    })
+
     match_prefix = config.SEARCH_PHRASE_PREFIX
     match_phrase = "match_phrase_prefix" if match_prefix else "match_phrase"
     for field in fields:
-
         should_queries.append({
             match_phrase: {
                 field: {
@@ -187,10 +238,11 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
                         "operator": "and",
                         "prefix_length": config.SEARCH_PREFIX_LENGTH,
                         "max_expansions": 10,
-                     }
-                 }
+                    }
+                }
             }
-            for field in fields
+            # Skip all_content as we already added it with specific settings
+            for field in fields if field != "all_content"
         ]
     )
 
@@ -211,7 +263,13 @@ def search(query, size=10, page=1, doc_type=None, fields=QUERY_FIELDS):
         }
     }
 
-    s = Search(**search_params).from_dict(query_dict).index(search_params['index']).doc_type(doc_type)
+    print("this is query %s", json.dumps(query_dict))
+
+    s = Search(**search_params).from_dict(query_dict).index(
+        search_params['index']).doc_type(doc_type)
+
+    print("Generated Query (%s): %s ", doc_type, s.to_dict())
+
     response = s.execute()
     return response
 

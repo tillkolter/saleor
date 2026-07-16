@@ -1,0 +1,45 @@
+local.oye-records.com {
+	tls internal
+
+	handle_path /graphql* {
+		rewrite * /graphql{uri}
+		reverse_proxy 0.0.0.0:9000 {
+			header_up Host {host}
+		}
+	}
+
+	handle_path /admin* {
+		rewrite * /admin{uri}
+		reverse_proxy 0.0.0.0:9000
+	}
+
+	handle_path /oye* {
+		rewrite * /oye{uri}
+		reverse_proxy 0.0.0.0:9000
+	}
+
+	handle_path /static/admin* {
+		rewrite * /static/admin{uri}
+		reverse_proxy 0.0.0.0:9000
+	}
+
+	handle_path /media/* {
+		root * /Users/tkolter/dev-data/oye_media/media
+		file_server
+	}
+
+	handle_path /static/* {
+		rewrite * /static{uri}
+		reverse_proxy https://oye-records.com
+	}
+
+	handle_path /* {
+		reverse_proxy :3000
+	}
+
+	reverse_proxy localhost:3000 {
+		transport http {
+			versions h2c 1.1
+		}
+	}
+}

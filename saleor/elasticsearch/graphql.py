@@ -1,5 +1,6 @@
 import graphene
 from graphene.types.json import JSONString
+from saleor.elasticsearch.search import OYE_ARTISTS_INDEX, OYE_LABELS_INDEX, OYE_RELEASES_INDEX
 from saleor_oye.graphql.charts import ArtistType
 from saleor_oye.graphql.labels import LabelType
 from saleor_oye.graphql.releases import ArtikelType
@@ -9,26 +10,21 @@ __author__ = 'tkolter'
 
 
 class SearchableType(graphene.Interface):
-    highlight = graphene.Field(lambda: JSONString)
     score = graphene.Float()
 
     @classmethod
-    def resolve_type(cls, instance, context, info):
-        type = instance.hit.meta.doc_type
-        if type == 'release':
+    def resolve_type(cls, instance, info):
+        index = instance.hit.index
+        if index == OYE_RELEASES_INDEX:
             return ReleaseSearchResult
-        if type == 'artist':
+        if index == OYE_ARTISTS_INDEX:
             return ArtistSearchResult
-        if type == 'label':
+        if index == OYE_LABELS_INDEX:
             return LabelSearchResult
 
-    def resolve_highlight(self, *args):
-        if hasattr(self.hit.meta, "highlight"):
-            return self.hit.meta.highlight.to_dict()
 
-    def resolve_score(self, *args):
+    def resolve_score(self, info):
         return self.hit.meta.score
-
 
 class ReleaseSearchResult(graphene.ObjectType):
     class Meta:
@@ -36,7 +32,7 @@ class ReleaseSearchResult(graphene.ObjectType):
 
     release = graphene.Field(lambda: ArtikelType)
 
-    def resolve_release(self, *args):
+    def resolve_release(self, info):
         return self.instance
 
 
@@ -46,7 +42,7 @@ class ArtistSearchResult(graphene.ObjectType):
 
     artist = graphene.Field(lambda: ArtistType)
 
-    def resolve_artist(self, *args):
+    def resolve_artist(self, info):
         return self.instance
 
 
@@ -56,7 +52,7 @@ class LabelSearchResult(graphene.ObjectType):
 
     label = graphene.Field(lambda: LabelType)
 
-    def resolve_label(self, *args):
+    def resolve_label(self, info):
         return self.instance
 
 
