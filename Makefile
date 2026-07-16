@@ -69,4 +69,4 @@ test:
 	docker exec -it saleor-web-1 bash -c 'IS_TESTING=True REMOTE=False DJANGO_SETTINGS_MODULE=saleor.settings pytest src/saleor-oye/saleor_oye'
 
 schema:
-docker exec -it saleor-web-1 bash -c "./manage.py graphql_schema --out=-" > ../nuxt-oye-records/graphql.schema.json
+	docker exec -it saleor-web-1 bash -c "./manage.py graphql_schema --out=-" > ../nuxt-oye-records/graphql.schema.json
