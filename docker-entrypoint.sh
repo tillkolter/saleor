@@ -17,7 +17,9 @@ echo Starting Gunicorn.
 exec gunicorn saleor.wsgi:application \
     --name saleor \
     --bind 0.0.0.0:8000 \
-    --workers 10 \
+    --workers 4 \
+    --max-requests 500 \
+    --max-requests-jitter 50 \
     --log-level=info \
     --timeout $TIMEOUT \
     --log-file=/srv/logs/gunicorn.log \
