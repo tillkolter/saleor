@@ -46,7 +46,7 @@ mysqlclient==2.2.0
 whitenoise==6.5.0
 
 # Proprietary Oye Saleor Plugin
--e git+ssh://git@github.com/tillkolter/saleor-oye-records.git@feat/upgrades#egg=saleor_oye
+-e git+ssh://git@github.com/tillkolter/saleor-oye-records.git@master#egg=saleor_oye
 
 
 # Fixed migration overkill by sorting currencies
