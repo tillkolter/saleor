@@ -41,3 +41,29 @@ jobs:
       - name: Verify application imports
         run: |
           docker run --rm --entrypoint python oye-saleor:ci -c "import saleor; import saleor_oye"
+          docker run --rm --entrypoint git oye-saleor:ci -C /app/src/saleor-oye rev-parse HEAD
+
+      - name: Test installed OYE extension
+        run: |
+          docker run --rm --entrypoint python \
+            -e SECRET_KEY=ci-only-secret \
+            -e DJANGO_SETTINGS_MODULE=saleor_oye.tests.settings \
+            -e IS_TESTING=True -e REMOTE=False \
+            oye-saleor:ci -m pytest \
+            /app/src/saleor-oye/saleor_oye/tests/test_withdrawals.py --no-migrations
+
+      - name: Verify optional Python Brotli decoders
+        run: |
+          docker run --rm -i --entrypoint python oye-saleor:ci - <<'PY'
+          from importlib.metadata import PackageNotFoundError, version
+          from packaging.version import Version
+
+          for package, minimum in (("Brotli", "1.2.1"), ("brotlicffi", "1.2.1.0")):
+              try:
+                  installed = version(package)
+              except PackageNotFoundError:
+                  print(f"{package}: not installed")
+                  continue
+              print(f"{package}: {installed}")
+              assert Version(installed) >= Version(minimum), f"{package} requires >= {minimum}"
+          PY
