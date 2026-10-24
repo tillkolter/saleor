@@ -1,18 +1,23 @@
 # syntax=docker/dockerfile:1.2
 
-FROM python:3.10-bullseye
+FROM python:3.10-bookworm
 ENV PYTHONUNBUFFERED 1
 
-RUN apt-get -y update --allow-insecure-repositories && \
-  apt-get --allow-unauthenticated install -y \
+# Bookworm provides the CVE-2026-111497 fix as a Debian security backport.
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
   wget \
   openssh-client \
   build-essential \
   libssl-dev \
   libffi-dev \
-  python3-dev
+  python3-dev \
+  libbrotli1 \
+  libbrotli-dev && \
+  dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libbrotli1)" ge '1.0.9-2+deb12u1' && \
+  rm -rf /var/lib/apt/lists/*
 
-ADD requirements.txt /app/
+ADD requirements.txt constraints.txt /app/
 WORKDIR /app
 
 # add the authorized host key for github (avoids "Host key verification failed")
